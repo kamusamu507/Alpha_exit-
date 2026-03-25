@@ -2,113 +2,115 @@ const fs = require("fs-extra");
 const { utils } = global;
 
 module.exports = {
-  config: {
-    name: "prefix",
-    version: "0.0.7",
-    author: "Azadx69x",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Prefix manager",
-    longDescription: "Control bot prefix (chat/global)",
-    category: "system"
-  },
+	config: {
+		name: "prefix",
+		version: "1.5",
+		author: "Bayzid × modified by tom",
+		countDown: 5,
+		role: 0,
+		description: "🛠️ 𝐂𝐡𝐚𝐧𝐠𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭 𝐩𝐫𝐞𝐟𝐢𝐱 𝐢𝐧 𝐲𝐨𝐮𝐫 𝐜𝐡𝐚𝐭 𝐛𝐨𝐱 𝐨𝐫 𝐭𝐡𝐞 𝐞𝐧𝐭𝐢𝐫𝐞 𝐬𝐲𝐬𝐭𝐞𝐦 (𝐨𝐧𝐥𝐲 𝐛𝐨𝐭 𝐚𝐝𝐦𝐢𝐧)",
+		category: "⚙️ 𝐂𝐨𝐧𝐟𝐢𝐠𝐮𝐫𝐚𝐭𝐢𝐨𝐧",
+		guide: {
+			en: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "📌 {pn} <new prefix>: 𝐂𝐡𝐚𝐧𝐠𝐞 𝐭𝐡𝐞 𝐩𝐫𝐞𝐟𝐢𝐱 𝐢𝐧 𝐲𝐨𝐮𝐫 𝐜𝐡𝐚𝐭 𝐛𝐨𝐱\n"
+				+ "━━━━━━━━━━━━━━━━━━━\n"
+				+ "📍 𝐄𝐱𝐚𝐦𝐩𝐥𝐞:\n"
+				+ "🔹 {pn} #\n"
+				+ "━━━━━━━━━━━━━━━━━━━\n"
+				+ "📌 {pn} <new prefix> -g: 𝐂𝐡𝐚𝐧𝐠𝐞 𝐭𝐡𝐞 𝐩𝐫𝐞𝐟𝐢𝐱 𝐢𝐧 𝐭𝐡𝐞 𝐞𝐧𝐭𝐢𝐫𝐞 𝐬𝐲𝐬𝐭𝐞𝐦 (𝐨𝐧𝐥𝐲 𝐛𝐨𝐭 𝐚𝐝𝐦𝐢𝐧)\n"
+				+ "━━━━━━━━━━━━━━━━━━━\n"
+				+ "📍 𝐄𝐱𝐚𝐦𝐩𝐥𝐞:\n"
+				+ "🔹 {pn} # -g\n"
+				+ "━━━━━━━━━━━━━━━━━━━\n"
+				+ "🛠️ {pn} reset: 𝐑𝐞𝐬𝐞𝐭 𝐲𝐨𝐮𝐫 𝐜𝐡𝐚𝐭 𝐛𝐨𝐱 𝐩𝐫𝐞𝐟𝐢𝐱 𝐭𝐨 𝐝𝐞𝐟𝐚𝐮𝐥𝐭\n"
+				+ "━━━━━━━━━━━━━━━━━━━"
+		}
+	},
 
-  langs: {
-    en: {
-      askPrefix: "😏 𝙃𝙚𝙮 %name%, 𝙙𝙞𝙙 𝙮𝙤𝙪 𝙖𝙨𝙠 𝙛𝙤𝙧 𝙢𝙮 𝙥𝙧𝙚𝙛𝙞𝙭?\n╭─❯🌐 𝙂𝙡𝙤𝙗𝙖𝙡 ⟿『%global%』\n╰─❯💬 𝘾𝙝𝙖𝙩 ⟿ 『%chat%』\n\n🤖 𝙄'𝙢 𝙓69𝙓 𝘽𝙊𝙏 𝙑3 𝙖𝙩 𝙮𝙤𝙪𝙧 𝙨𝙚𝙧𝙫𝙞𝙘𝙚 👿",
-      resetPrefix: "☢️ 𝙋𝙧𝙚𝙛𝙞𝙭 𝙍𝙚𝙨𝙚𝙩\n\n🌐 𝙂𝙡𝙤𝙗𝙖𝙡 ⟿ %global%\n💬 𝘾𝙝𝙖𝙩 ⟿ %global%\n\n🤖 𝙓69𝙓 𝘽𝙊𝙏 𝙑3",
-      confirmChange: "♻️ %type% 𝘾𝙝𝙖𝙣𝙜𝙚\n%old% ⇢ %new%\n\n👆 𝙍𝙚𝙖𝙘𝙩 𝙬𝙞𝙩𝙝 ✅ 𝙩𝙤 𝙘𝙤𝙣𝙛𝙞𝙧𝙢",
-      updatedGlobal: "✅ 𝙂𝙡𝙤𝙗𝙖𝙡 𝙐𝙥𝙙𝙖𝙩𝙚 ⇢ %prefix%\n\n🤖 𝙓69𝙓 𝘽𝙊𝙏 𝙑3",
-      updatedChat: "✅ 𝘾𝙝𝙖𝙩 𝙐𝙥𝙙𝙖𝙩𝙚 ⇢ %prefix%\n\n🤖 𝙓69𝙓 𝘽𝙊𝙏 𝙑3",
-      ownerOnly: "⛔ 𝙊𝙬𝙣𝙚𝙧 𝙊𝙣𝙡𝙮",
-      cancelled: "❌ 𝘾𝙖𝙣𝙘𝙚𝙡𝙡𝙚𝙙"
-    }
-  },
+	langs: {
+		en: {
+			reset: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "✅ 𝐘𝐨𝐮𝐫 𝐩𝐫𝐞𝐟𝐢𝐱 𝐡𝐚𝐬 𝐛𝐞𝐞𝐧 𝐫𝐞𝐬𝐞𝐭 𝐭𝐨 𝐝𝐞𝐟𝐚𝐮𝐥𝐭: %1\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			onlyAdmin: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "⚠️ 𝐎𝐧𝐥𝐲 𝐚𝐝𝐦𝐢𝐧 𝐜𝐚𝐧 𝐜𝐡𝐚𝐧𝐠𝐞 𝐭𝐡𝐞 𝐬𝐲𝐬𝐭𝐞𝐦 𝐩𝐫𝐞𝐟𝐢𝐱!\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			confirmGlobal: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "🔄 𝐏𝐥𝐞𝐚𝐬𝐞 𝐫𝐞𝐚𝐜𝐭 𝐭𝐨 𝐭𝐡𝐢𝐬 𝐦𝐞𝐬𝐬𝐚𝐠𝐞 𝐭𝐨 𝐜𝐨𝐧𝐟𝐢𝐫𝐦 𝐜𝐡𝐚𝐧𝐠𝐢𝐧𝐠 𝐭𝐡𝐞 𝐬𝐲𝐬𝐭𝐞𝐦 𝐩𝐫𝐞𝐟𝐢𝐱.\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			confirmThisThread: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "🔄 𝐏𝐥𝐞𝐚𝐬𝐞 𝐫𝐞𝐚𝐜𝐭 𝐭𝐨 𝐭𝐡𝐢𝐬 𝐦𝐞𝐬𝐬𝐚𝐠𝐞 𝐭𝐨 𝐜𝐨𝐧𝐟𝐢𝐫𝐦 𝐜𝐡𝐚𝐧𝐠𝐢𝐧𝐠 𝐭𝐡𝐞 𝐩𝐫𝐞𝐟𝐢𝐱 𝐢𝐧 𝐲𝐨𝐮𝐫 𝐜𝐡𝐚𝐭 𝐠𝐫𝐨𝐮𝐩.\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			successGlobal: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "✅ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐩𝐫𝐞𝐟𝐢𝐱 𝐡𝐚𝐬 𝐛𝐞𝐞𝐧 𝐜𝐡𝐚𝐧𝐠𝐞𝐝 𝐭𝐨: %1\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			successThisThread: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "✅ 𝐂𝐡𝐚𝐭 𝐠𝐫𝐨𝐮𝐩 𝐩𝐫𝐞𝐟𝐢𝐱 𝐡𝐚𝐬 𝐛𝐞𝐞𝐧 𝐜𝐡𝐚𝐧𝐠𝐞𝐝 𝐭𝐨: %1\n"
+				+ "━━━━━━━━━━━━━━━━━━━",
+			myPrefix: 
+				"━━━━━━━━━━━━━━━━━━━\n"
+				+ "🌍 𝐒𝐲𝐬𝐭𝐞𝐦 𝐏𝐫𝐞𝐟𝐢𝐱: %1\n"
+				+ "💬 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 𝐏𝐫𝐞𝐟𝐢𝐱: %2\n"
+				+ "⏰ 𝐒𝐞𝐫𝐯𝐞𝐫 𝐓𝐢𝐦𝐞: %3\n"
+				+ "━━━━━━━━━━━━━━━━━━━\n"
+				+ "💡 𝐓𝐨 𝐮𝐬𝐞 𝐜𝐨𝐦𝐦𝐚𝐧𝐝𝐬, 𝐭𝐲𝐩𝐞 ➜ %2help 𝐭𝐨 𝐬𝐞𝐞 𝐚𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 𝐜𝐨𝐦𝐦𝐚𝐧𝐝𝐬!\n"
+				+ "━━━━━━━━━━━━━━━━━━━"
+		}
+	},
 
-  onStart: async function ({ api, event, args, threadsData, getLang }) {
-    const { threadID, messageID, senderID } = event;
+	onStart: async function ({ message, role, args, commandName, event, threadsData, getLang }) {
+		if (!args[0]) return message.SyntaxError();
 
-    let name = "User";
-    try {
-      const data = await api.getUserInfo(senderID);
-      name = data[senderID]?.name?.split(" ")[0] || "User";
-    } catch {}
+		if (args[0] === "reset") {
+			await threadsData.set(event.threadID, null, "data.prefix");
+			return message.reply(getLang("reset", global.GoatBot.config.prefix));
+		}
 
-    const globalPf = global.GoatBot.config.prefix;
-    const threadPf = await threadsData.get(threadID, "data.prefix").catch(() => null);
-    const currentPf = threadPf || globalPf;
+		const newPrefix = args[0];
+		const formSet = {
+			commandName,
+			author: event.senderID,
+			newPrefix,
+			setGlobal: args[1] === "-g"
+		};
 
-    if (!args[0]) {
-      return api.sendMessage(
-        getLang("askPrefix").replace("%name%", name).replace("%global%", globalPf).replace("%chat%", currentPf),
-        threadID,
-        messageID
-      );
-    }
+		if (formSet.setGlobal && role < 2) {
+			return message.reply(getLang("onlyAdmin"));
+		}
 
-    if (args[0].toLowerCase() === "reset") {
-      await threadsData.set(threadID, null, "data.prefix");
-      return api.sendMessage(
-        getLang("resetPrefix").replace(/%global%/g, globalPf),
-        threadID,
-        messageID
-      );
-    }
+		const confirmMessage = formSet.setGlobal ? getLang("confirmGlobal") : getLang("confirmThisThread");
+		return message.reply(confirmMessage, (err, info) => {
+			formSet.messageID = info.messageID;
+			global.GoatBot.onReaction.set(info.messageID, formSet);
+		});
+	},
 
-    const nextPf = args[0];
-    const isGlobal = args[1] === "-g";
+	onReaction: async function ({ message, threadsData, event, Reaction, getLang }) {
+		const { author, newPrefix, setGlobal } = Reaction;
+		if (event.userID !== author) return;
 
-    if (isGlobal && senderID !== api.getCurrentUserID()) {
-      return api.sendMessage(getLang("ownerOnly"), threadID, messageID);
-    }
+		if (setGlobal) {
+			global.GoatBot.config.prefix = newPrefix;
+			fs.writeFileSync(global.client.dirConfig, JSON.stringify(global.GoatBot.config, null, 2));
+			return message.reply(getLang("successGlobal", newPrefix));
+		}
 
-    const confirmText = isGlobal
-      ? getLang("confirmChange").replace("%type%", "Global").replace("%old%", globalPf).replace("%new%", nextPf)
-      : getLang("confirmChange").replace("%type%", "Chat").replace("%old%", currentPf).replace("%new%", nextPf);
+		await threadsData.set(event.threadID, newPrefix, "data.prefix");
+		return message.reply(getLang("successThisThread", newPrefix));
+	},
 
-    return api.sendMessage(confirmText, threadID, (err, info) => {
-      if (err) return;
-      
-      global.GoatBot.onReaction.set(info.messageID, {
-        messageID: info.messageID,
-        commandName: "prefix",
-        uid: senderID,
-        prefix: nextPf,
-        isGlobal: isGlobal,
-        threadID: threadID
-      });
-    }, messageID);
-  },
-
-  onReaction: async function ({ api, event, Reaction, threadsData, getLang }) {
-    const { userID, messageID, reaction, threadID } = event;
-    
-    if (!Reaction || Reaction.uid !== userID) return;
-    
-    const normalizedReaction = reaction ? reaction.toString().replace(/\uFE0F/g, '').trim() : '';
-    const targetEmoji = "✅";
-    
-    const isConfirm = normalizedReaction === targetEmoji || 
-                      normalizedReaction === "✓" || 
-                      normalizedReaction === "☑" ||
-                      normalizedReaction === "✔";
-    
-    if (!isConfirm) {
-      global.GoatBot.onReaction.delete(messageID);
-      return api.sendMessage(getLang("cancelled"), Reaction.threadID, messageID);
-    }
-
-    const { prefix, isGlobal } = Reaction;
-    
-    global.GoatBot.onReaction.delete(messageID);
-
-    if (isGlobal) {
-      global.GoatBot.config.prefix = prefix;
-      await fs.writeFile(global.client.dirConfig, JSON.stringify(global.GoatBot.config, null, 2));
-      return api.sendMessage(getLang("updatedGlobal").replace("%prefix%", prefix), threadID);
-    }
-
-    await threadsData.set(threadID, prefix, "data.prefix");
-    return api.sendMessage(getLang("updatedChat").replace("%prefix%", prefix), threadID);
-  }
+	onChat: async function ({ event, message, getLang }) {
+		if (event.body && event.body.toLowerCase() === "prefix") {
+			const serverTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" }); // ঢাকার সময়
+			
+			return message.reply(getLang("myPrefix", global.GoatBot.config.prefix, utils.getPrefix(event.threadID), serverTime));
+		}
+	}
 };
