@@ -1,215 +1,283 @@
 const axios = require("axios");
 const fs = require("fs");
-const FormData = require("form-data");
+const path = require("path");
 
-module.exports = {
-  config: {
-    name: "album",
-    aliases: ["al"],
-    version: "0.0.7",
-    author: "Azadx69x",
-    countDown: 2,
-    role: 0,
-    shortDescription: "𝐀𝐥𝐛𝐮𝐦 𝐕𝐢𝐝𝐞𝐨 Random",
-    longDescription: "Random album videos",
-    category: "media"
+const baseApiUrl = async () => {
+  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+  return base.data.mahmud;
+};
+
+/**
+* @author MahMUD
+* @author: do not delete it
+*/
+
+module.exports = { 
+  config: { 
+    name: "album", 
+    version: "1.7", 
+    role: 0, 
+    author: "MahMUD", 
+    category: "media", 
+    guide: { 
+      en: "{p}{n} [page number] (e.g., {p}{n} 2 to view the next page)\n{p}{n} add [category] [URL] - Add a video to a category\n{p}{n} list - View total videos in each category",
+    }, 
   },
 
-  albumSystem: new Map(),
-  albumBaseUrl: null,
-  videoQueue: new Map(),
+  onStart: async function ({ api, event, usersData, args }) {     
+     const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);  if (module.exports.config.author !== obfuscatedAuthor) { return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID); }
+     const apiUrl = await baseApiUrl();
 
-  categoryMap: {
-    "𝐀𝐙𝐀𝐃𝐗𝟔𝟗𝐗𝐅𝐅": "Azadx69xff",
-    "𝐀𝐧𝐢𝐦𝐞": "anime",
-    "𝐀𝐨𝐓": "aot",
-    "𝐀𝐭𝐭𝐢𝐭𝐮𝐝𝐞": "attitude",
-    "𝐁𝐚𝐛𝐲": "baby",
-    "𝐂𝐚𝐭": "cat",
-    "𝐂𝐨𝐮𝐩𝐥𝐞": "couple",
-    "𝐃𝐫𝐚𝐠𝐨𝐧𝐁𝐚𝐥𝐥": "dragonball",
-    "𝐅𝐥𝐨𝐰𝐞𝐫": "flower",
-    "𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥": "football",
-    "𝐅𝐫𝐞𝐞𝐅𝐢𝐫𝐞": "freefire",
-    "𝐅𝐫𝐢𝐞𝐧𝐝𝐬": "friends",
-    "𝐅𝐮𝐧𝐧𝐲": "funny",
-    "𝐇𝐨𝐫𝐧𝐲": "horny",
-    "𝐇𝐨𝐭": "hot",
-    "𝐈𝐬𝐥𝐚𝐦𝐢𝐜": "islamic",
-    "𝐋𝐨𝐅𝐈": "lofi",
-    "𝐋𝐨𝐯𝐞": "love",
-    "𝐋𝐲𝐫𝐢𝐜𝐬": "lyrics",
-    "𝐒𝐚𝐝": "sad"
-  },
+      if (args[0] === "add") {
+        if (!args[1]) {
+        return api.sendMessage("Please specify a category. Usage: !a add [category]", event.threadID, event.messageID);   }
+        const category = args[1].toLowerCase(); if (event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+        const attachment = event.messageReply.attachments[0];
+        if (attachment.type !== "video") {
+        return api.sendMessage("❌ Only video attachments are allowed.", event.threadID, event.messageID);
+     }
 
-  async loadAlbumBaseUrl() {
-    if (this.albumBaseUrl) return;
-    try {
-      const res = await axios.get(
-        "https://raw.githubusercontent.com/ncazad/Azad69x/main/baseApiUrl.json"
-      );
-      this.albumBaseUrl = res.data.album?.replace(/\/$/, "") || null;
-      console.log("Album API base URL loaded:", this.albumBaseUrl);
-    } catch (e) {
-      console.error("Failed to load album base URL:", e.message);
-      this.albumBaseUrl = null;
-    }
-  },
-
-  async fetchAlbumVideo(category) {
-    await this.loadAlbumBaseUrl();
-    if (!this.albumBaseUrl) return null;
-
-    if (!this.videoQueue.has(category) || this.videoQueue.get(category).length === 0) {
-      try {
-        const res = await axios.get(`${this.albumBaseUrl}/api/album?category=${encodeURIComponent(category)}`, {
-          timeout: 10000
-        });
-
-        let videos = [];
-        if (res.data?.url) videos.push(res.data.url);
-        if (res.data?.videos?.length) videos = videos.concat(res.data.videos);
-        if (res.data?.data?.url) videos.push(res.data.data.url);
-        if (res.data?.data?.videos?.length) videos = videos.concat(res.data.data.videos);
-        if (Array.isArray(res.data)) videos = res.data;
-
-        videos = videos.filter(url => url && (url.includes('http://') || url.includes('https://')));
-
-        if (!videos.length) return null;
-
-        this.videoQueue.set(category, this.shuffleArray(videos));
-      } catch (e) {
-        console.error(`Failed to fetch video for ${category}:`, e.message);
-        return null;
+       try {
+        const response = await axios.post("https://api.imgur.com/3/image", {image: attachment.url,type: "url"  },  {headers: {
+        Authorization: "Client-ID"} }   );
+        const imgurLink = response.data?.data?.link;
+        if (!imgurLink) throw new Error("Imgur upload failed");  try {
+        const uploadResponse = await axios.post(`${apiUrl}/api/add`, {  category,  videoUrl: imgurLink,  });
+        return api.sendMessage(uploadResponse.data.message, event.threadID, event.messageID);  } catch (error) {
+        return api.sendMessage(`Failed to upload video.\n${error.response?.data?.error || error.message}`, event.threadID, event.messageID);   }    } catch (error) {
+        return api.sendMessage(`Failed to upload to Imgur.\n${error.message}`, event.threadID, event.messageID);   }
       }
+
+        
+       if (!args[2]) {
+       return api.sendMessage("❌ Please provide a video URL or reply to a video message.", event.threadID, event.messageID);   }
+       const videoUrl = args[2];   try {
+       const response = await axios.post(`${apiUrl}/api/add`, {    category,    videoUrl,  });
+       return api.sendMessage(response.data.message, event.threadID, event.messageID);  } catch (error) {
+       return api.sendMessage(`${error.response?.data?.error || error.message}`, event.threadID, event.messageID);
+     }
+
+        
+     } else if (args[0] === "list") {try {
+       const response = await axios.get(`${apiUrl}/api/album/mahmud/list`);
+       api.sendMessage(response.data.message, event.threadID, event.messageID); } catch (error) {
+       api.sendMessage(`${error.message}`, event.threadID, event.messageID);  } } else {
+       const displayNames = 
+         [
+         "𝐅𝐮𝐧𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐈𝐬𝐥𝐚𝐦𝐢𝐜 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐒𝐚𝐝 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐀𝐧𝐢𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐋𝐨𝐅𝐈 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐀𝐭𝐭𝐢𝐭𝐮𝐝𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐇𝐨𝐫𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐂𝐨𝐮𝐩𝐥𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐂𝐚𝐫 𝐄𝐝𝐢𝐭 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐁𝐢𝐤𝐞 𝐄𝐝𝐢𝐭 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐋𝐨𝐯𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐋𝐲𝐫𝐢𝐜𝐬 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐂𝐚𝐭 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝟏𝟖+ 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐌𝐞𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝐚𝐛𝐲 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐅𝐫𝐢𝐞𝐧𝐝𝐬 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐌𝐨𝐧𝐞𝐲 𝐯𝐢𝐝𝐞𝐨 🎀",
+         "𝐅𝐥𝐨𝐰𝐞𝐫 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐍𝐚𝐫𝐮𝐭𝐨 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐃𝐫𝐚𝐠𝐨𝐧 𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝐥𝐞𝐚𝐜𝐡 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐃𝐞𝐦𝐨𝐧 𝐬𝐲𝐥𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐉𝐮𝐣𝐮𝐭𝐬𝐮 𝐊𝐚𝐢𝐬𝐞𝐧 𝐯𝐢𝐝𝐞𝐨 🎀",
+         "𝐒𝐨𝐥𝐨 𝐥𝐞𝐯𝐞𝐥𝐢𝐧𝐠 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐓𝐨𝐤𝐲𝐨 𝐫𝐞𝐯𝐞𝐧𝐠𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝐥𝐮𝐞 𝐥𝐨𝐜𝐤 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐂𝐡𝐚𝐢𝐧𝐬𝐚𝐰 𝐦𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐃𝐞𝐚𝐭𝐡 𝐧𝐨𝐭𝐞 𝐯𝐢𝐝𝐞𝐨 🎀",
+         "𝐎𝐧𝐞 𝐏𝐢𝐞𝐜𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐀𝐭𝐭𝐚𝐜𝐤 𝐨𝐧 𝐓𝐢𝐭𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐒𝐚𝐤𝐚𝐦𝐨𝐭𝐨 𝐃𝐚𝐲𝐬 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐰𝐢𝐧𝐝 𝐛𝐫𝐞𝐚𝐤𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐎𝐧𝐞 𝐩𝐮𝐧𝐜𝐡 𝐦𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐀𝐥𝐲𝐚 𝐑𝐮𝐬𝐬𝐢𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝐥𝐮𝐞 𝐛𝐨𝐱 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐇𝐮𝐧𝐭𝐞𝐫 𝐱 𝐇𝐮𝐧𝐭𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐋𝐨𝐧𝐞𝐫 𝐥𝐢𝐟𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐇𝐚𝐧𝐢𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐍𝐞𝐲𝐦𝐚𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐌𝐞𝐬𝐬𝐢 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐑𝐨𝐧𝐚𝐥𝐝𝐨 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐕𝐢𝐧𝐢 𝐉𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐌𝐛𝐚𝐩𝐩𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐘𝐚𝐦𝐚𝐥 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐑𝐚𝐩𝐢𝐧𝐡𝐚 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐃𝐲𝐛𝐚𝐥𝐚 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐏𝐞𝐥𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐌𝐚𝐫𝐚𝐝𝐨𝐧𝐚 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐖𝐡𝐢𝐭𝐞 𝟒𝟒𝟒 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐑𝐮𝐨𝐤 𝐟𝐟 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝟐𝐤 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐁𝐧𝐥 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐕𝐢𝐧𝐜𝐞𝐧𝐳𝐨 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐒𝐲𝐛𝐥𝐮𝐬 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐑𝐚𝐢𝐬𝐭𝐚𝐫 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐒𝐦𝐨𝐨𝐭𝐡 𝟒𝟒𝟒 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐀𝐬𝐭𝐚𝐭𝐢𝐧𝐞 𝐕𝐢𝐝𝐞𝐨 🎀",
+         "𝐅𝐅 𝐄𝐬𝐩𝐨𝐫𝐭𝐬 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐅𝐫𝐞𝐞 𝐅𝐢𝐫𝐞 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐏𝐮𝐛𝐠 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐂𝐚𝐥𝐥 𝐨𝐟 𝐃𝐮𝐭𝐲 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐂𝐥𝐚𝐬𝐡 𝐨𝐟 𝐂𝐥𝐚𝐧𝐬 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐌𝐨𝐛𝐢𝐥𝐞 𝐋𝐞𝐠𝐞𝐧𝐝 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐞𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐌𝐢𝐧𝐞𝐜𝐫𝐚𝐟𝐭 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐆𝐭𝐚 𝐕𝐜 𝐕𝐢𝐝𝐞𝐨🎀",
+         "𝐖𝐡𝐞𝐫𝐞 𝐰𝐢𝐧𝐝𝐬 𝐦𝐞𝐞𝐭🎀",
+         "𝐆𝐞𝐧𝐬𝐡𝐢𝐧 𝐈𝐦𝐩𝐚𝐜𝐭🎀"
+        ];
+       const itemsPerPage = 10;
+       const page = parseInt(args[0]) || 1;
+       const totalPages = Math.ceil(displayNames.length / itemsPerPage);
+       if (page < 1 || page > totalPages) {
+       return api.sendMessage(`❌ Invalid page! Please choose between 1 - ${totalPages}.`, event.threadID, event.messageID);
+      }
+
+       const startIndex = (page - 1) * itemsPerPage;
+       const endIndex = startIndex + itemsPerPage;
+       const displayedCategories = displayNames.slice(startIndex, endIndex);
+       const message = `𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 𝐀𝐥𝐛𝐮𝐦 𝐕𝐢𝐝𝐞𝐨\n` +
+       "𐙚━━━━━━━━━━━━━━━━━━━━━ᡣ𐭩\n" +
+       displayedCategories.map((option, index) => `${startIndex + index + 1}. ${option}`).join("\n") +
+       "\n𐙚━━━━━━━━━━━━━━━━━━━━━ᡣ𐭩" +
+      `\n♻ | 𝐏𝐚𝐠𝐞 [${page}/${totalPages}]<😘\nℹ | 𝐓𝐲𝐩𝐞 !album ${page + 1} - 𝐭𝐨 𝐬𝐞𝐞 𝐧𝐞𝐱𝐭 𝐩𝐚𝐠𝐞.`.repeat(page < totalPages);
+       await api.sendMessage(message, event.threadID, (error, info) => {
+       global.GoatBot.onReply.set(info.messageID, { commandName: this.config.name, type: "reply",   messageID: info.messageID,  author: event.senderID,  page,  startIndex,  displayNames,
+     realCategories: 
+       [
+        "funny", "islamic",  "sad",  "anime",  "lofi",  "attitude",  "horny", "couple",  "car", "bike", "love",  "lyrics", "cat", "18+","meme",
+        "football",  "baby", "friend", "money", "flower",  "naruto", "dragon", "bleach", "demon", "jjk", "solo", "tokyo",  "bluelock",  "cman", "deathnote","onepiece", "attack",
+        "sakamoto", "wind",  "onepman","alya", "bluebox",  "hunter", "loner",  "hanime", 
+        "neymar","messi", "ronaldo", "vini", "mbappe",  "yamal",  "rapinha",  "dybala",  "pele",  "maradona",  "white",  "ruok",  "b2k",
+        "bnl",  "vincenzo", "syblus",  "raistar",  "smooth",  "astatine",  "esports",
+        "freefire", "pubg", "cod", "coc", "mlbb",   "efootball",   "minecraft",   "gta",   "wwmeet",    "genshin"                
+       ],
+        
+    captions: 
+      [
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐮𝐧𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😺",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐈𝐬𝐥𝐚𝐦𝐢𝐜 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <✨",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐚𝐝 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😢",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐧𝐢𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐨𝐅𝐈 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🎶",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐭𝐭𝐢𝐭𝐮𝐝𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <☠ ",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐇𝐨𝐫𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🥵",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐨𝐮𝐩𝐥𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <💑",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐚𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌸",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐢𝐤𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐨𝐯𝐞 𝐯𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <❤",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐲𝐫𝐢𝐜𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🎵",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐚𝐭 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🐱",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐈𝟖+ 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🥵",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐞𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 🔥",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <⚽",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐚𝐛𝐲 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🐥",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐫𝐢𝐞𝐧𝐝𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <👭",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐨𝐧𝐞𝐲 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🐥",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐥𝐨𝐰𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐍𝐚𝐫𝐮𝐭𝐨 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐃𝐫𝐚𝐠𝐨𝐧 𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐥𝐞𝐚𝐜𝐡 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐃𝐞𝐦𝐨𝐧 𝐬𝐲𝐥𝐞𝐫 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐉𝐮𝐣𝐮𝐭𝐬𝐮 𝐊𝐚𝐢𝐬𝐞𝐧 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐨𝐥𝐨 𝐥𝐞𝐯𝐞𝐥𝐢𝐧𝐠 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐓𝐨𝐤𝐲𝐨 𝐫𝐞𝐯𝐞𝐧𝐠𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐥𝐮𝐞 𝐥𝐨𝐜𝐤 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐡𝐚𝐢𝐧𝐬𝐚𝐰 𝐦𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐃𝐞𝐚𝐭𝐡 𝐧𝐨𝐭𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐎𝐧𝐞 𝐏𝐢𝐞𝐜𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐭𝐭𝐚𝐜𝐤 𝐨𝐧 𝐓𝐢𝐭𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐚𝐤𝐚𝐦𝐨𝐭𝐨 𝐃𝐚𝐲𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐰𝐢𝐧𝐝 𝐛𝐫𝐞𝐚𝐤𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟", 
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐎𝐧𝐞 𝐩𝐮𝐧𝐜𝐡 𝐦𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐥𝐲𝐚 𝐑𝐮𝐬𝐬𝐢𝐚𝐧 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐥𝐮𝐞 𝐛𝐨𝐱 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟", 
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐇𝐮𝐧𝐭𝐞𝐫 𝐱 𝐇𝐮𝐧𝐭𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",  
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐨𝐧𝐞𝐫 𝐥𝐢𝐟𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐇𝐚𝐧𝐢𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐍𝐞𝐲𝐦𝐚𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐞𝐬𝐬𝐢 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐑𝐨𝐧𝐚𝐥𝐝𝐨 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐕𝐢𝐧𝐢 𝐉𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐛𝐚𝐩𝐩𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐘𝐚𝐦𝐚𝐥 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐑𝐚𝐩𝐢𝐧𝐡𝐚 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐃𝐲𝐛𝐚𝐥𝐚 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐏𝐞𝐥𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐚𝐫𝐚𝐝𝐨𝐧𝐚 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐖𝐡𝐢𝐭𝐞 𝟒𝟒𝟒 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐑𝐮𝐨𝐤 𝐟𝐟 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝟐𝐤  𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐧𝐥 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐕𝐢𝐧𝐜𝐞𝐧𝐳𝐨 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐲𝐛𝐥𝐮𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐑𝐚𝐢𝐬𝐭𝐚𝐫 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐦𝐨𝐨𝐭𝐡 𝟒𝟒𝟒 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐬𝐭𝐚𝐭𝐢𝐧𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐅 𝐄𝐬𝐩𝐨𝐫𝐭𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐫𝐞𝐞 𝐅𝐢𝐫𝐞 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐏𝐮𝐛𝐠 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐚𝐥𝐥 𝐨𝐟 𝐃𝐮𝐭𝐲 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐥𝐚𝐬𝐡 𝐨𝐟 𝐂𝐥𝐚𝐧𝐬 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐨𝐛𝐢𝐥𝐞 𝐋𝐞𝐠𝐞𝐧𝐝 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <🌟",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐞𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐌𝐢𝐧𝐞𝐜𝐫𝐚𝐟𝐭 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐆𝐭𝐚 𝐕𝐜 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐖𝐡𝐞𝐫𝐞 𝐰𝐢𝐧𝐝𝐬 𝐦𝐞𝐞𝐭 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘",
+       "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐆𝐞𝐧𝐬𝐡𝐢𝐧 𝐈𝐦𝐩𝐚𝐜𝐭 𝐕𝐢𝐝𝐞𝐨 𝐁𝐚𝐛𝐲 <😘"       ]
+        });
+      }, event.messageID);
     }
-
-    const queue = this.videoQueue.get(category);
-    if (!queue || queue.length === 0) return null;
-
-    const videoUrl = queue.shift();
-    this.videoQueue.set(category, queue);
-    return videoUrl;
   },
 
-  shuffleArray(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+  onReply: async function ({ api, event, Reply }) {
+      api.unsendMessage(Reply.messageID);
+      const reply = parseInt(event.body);
+      const index = reply - 1;
+      if (isNaN(reply) || index < 0 || index >= Reply.realCategories.length) {
+      return api.sendMessage("Please reply with a valid number from the list.", event.threadID, event.messageID);
     }
-    return arr;
-  },
 
-  async uploadToCatbox(videoPath) {
-    const form = new FormData();
-    form.append("reqtype", "fileupload");
-    form.append("fileToUpload", fs.createReadStream(videoPath));
-
-    try {
-      const res = await axios.post("https://catbox.moe/user/api.php", form, { 
-        headers: form.getHeaders(),
-        timeout: 30000 
-      });
-      return res.data.trim();
-    } finally {
-      if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+      const category = Reply.realCategories[index];
+      const caption = Reply.captions[index];
+      const userID = event.senderID; try {
+      const apiUrl = await baseApiUrl();
+      const response = await axios.get(`${apiUrl}/api/album/mahmud/videos/${category}?userID=${userID}`);
+      if (!response.data.success) {
+      return api.sendMessage(response.data.message, event.threadID, event.messageID);
     }
-  },
 
-  getCategoryMessage(category, displayName) {
-    const messages = {
-      "Azadx69xff": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐙𝐀𝐃𝐗𝟔𝟗𝐗𝐅𝐅 𝐕𝐢𝐝𝐞𝐨 <🐼",
-      "anime": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐧𝐢𝐦𝐞 𝐕𝐢𝐝𝐞𝐨 <🎌",
-      "aot": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐨𝐓 𝐕𝐢𝐝𝐞𝐨 <⚡",
-      "attitude": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐀𝐭𝐭𝐢𝐭𝐮𝐝𝐞 𝐕𝐢𝐝𝐞𝐨 <☠️",
-      "baby": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐁𝐚𝐛𝐲 𝐕𝐢𝐝𝐞𝐨 <🐥",
-      "cat": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐚𝐭 𝐕𝐢𝐝𝐞𝐨 <🐱",
-      "couple": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐂𝐨𝐮𝐩𝐥𝐞 𝐕𝐢𝐝𝐞𝐨 <💑",
-      "dragonball": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐃𝐫𝐚𝐠𝐨𝐧𝐁𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 <🐉",
-      "flower": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐥𝐨𝐰𝐞𝐫 𝐕𝐢𝐝𝐞𝐨 <🌸",
-      "football": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐕𝐢𝐝𝐞𝐨 <⚽",
-      "freefire": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐫𝐞𝐞 𝐅𝐢𝐫𝐞 𝐕𝐢𝐝𝐞𝐨 <🔥",
-      "friends": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐫𝐢𝐞𝐧𝐝𝐬 𝐕𝐢𝐝𝐞𝐨 <👭",
-      "funny": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐅𝐮𝐧𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 <🤣",
-      "horny": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐇𝐨𝐫𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 <🥵",
-      "hot": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝟏𝟖+ 𝐕𝐢𝐝𝐞𝐨 <💦",
-      "islamic": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐈𝐬𝐥𝐚𝐦𝐢𝐜 𝐕𝐢𝐝𝐞𝐨 <🕋",
-      "lofi": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐨𝐅𝐈 𝐕𝐢𝐝𝐞𝐨 <🎶",
-      "love": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐨𝐯𝐞 𝐕𝐢𝐝𝐞𝐨 <🤍",
-      "lyrics": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐋𝐲𝐫𝐢𝐜𝐬 𝐕𝐢𝐝𝐞𝐨 <🎵",
-      "sad": "𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 𝐒𝐚𝐝 𝐕𝐢𝐝𝐞𝐨 <😢"
+      const videoUrls = response.data.videos;
+      if (!videoUrls || videoUrls.length === 0) {
+      return api.sendMessage("❌ | 𝐍𝐨 𝐯𝐢𝐝𝐞𝐨𝐬 𝐟𝐨𝐮𝐧𝐝 𝐟𝐨𝐫 𝐭𝐡𝐢𝐬 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲.", event.threadID, event.messageID);  }
+      const randomVideoUrl = videoUrls[Math.floor(Math.random() * videoUrls.length)];
+      const filePath = path.join(__dirname, "temp_video.mp4");
+      const downloadFile = async (url, filePath) => {
+      const response = await axios({ url, method: "GET", responseType: "stream", headers: { 'User-Agent': 'Mozilla/5.0' }
+     });
+
+      return new Promise((resolve, reject) => {
+      const writer = fs.createWriteStream(filePath);
+      response.data.pipe(writer);
+      writer.on("finish", resolve);
+      writer.on("error", reject); });
     };
-    return messages[category] || `𝐇𝐞𝐫𝐞 𝐲𝐨𝐮𝐫 ${displayName} 𝐕𝐢𝐝𝐞𝐨 <🎬`;
-  },
-
-  onStart: async function ({ message, event, args }) {
-    const displayNames = Object.keys(this.categoryMap);
-    const itemsPerPage = 10;
-    const page = parseInt(args[0]) || 1;
-    const totalPages = Math.ceil(displayNames.length / itemsPerPage);
-
-    if (page < 1 || page > totalPages) 
-      return message.reply("❌ Invalid page number!");
-
-    const startIndex = (page - 1) * itemsPerPage;
-    const categoriesToShow = displayNames.slice(startIndex, startIndex + itemsPerPage);
-
-    let text = "𐙚━━━━━━━━━━━━━━𐙚\n";
-    text += "🎀𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 𝐀𝐥𝐛𝐮𝐦 𝐕𝐢𝐝𝐞𝐨🎀\n";
-    text += "𐙚━━━━━━━━━━━━━━𐙚\n\n";
-
-    categoriesToShow.forEach((cat, i) => {
-      text += ` ➥${startIndex + i + 1}. ${cat}\n`;
-    });
-
-    text += "𐙚━━━━━━━━━━━━━━𐙚\n";
-    text += `📄 𝐏𝐚𝐠𝐞: ${page}/${totalPages}\n`;
-    text += "💬 𝐑𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡 𝐚 𝐧𝐮𝐦𝐛𝐞𝐫 𝐭𝐨 𝐠𝐞𝐭 𝐚 𝐯𝐢𝐝𝐞𝐨 🐱\n";
-    text += "𐙚━━━━━━━━━━━━━━𐙚";
-
-    const sent = await message.reply(text);
-
-    global.GoatBot.onReply.set(sent.messageID, {
-      commandName: "album",
-      author: event.senderID,
-      pageCategories: categoriesToShow.map(cat => this.categoryMap[cat]),
-      pageDisplayNames: categoriesToShow,
-      messageID: sent.messageID
-    });
-  },
-
-  onReply: async function ({ message, event, Reply }) {
-    if (event.senderID !== Reply.author) return;
-
-    const num = parseInt(event.body);
-    if (isNaN(num) || num < 1) return message.reply("❌ Please reply with a valid number!");
-
-    const index = num - 1;
-    const category = Reply.pageCategories[index];
-    const displayName = Reply.pageDisplayNames[index];
-    if (!category) return message.reply("❌ Invalid number!");
-
-    let stream = null;
-    const maxRetries = 3;
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const videoUrl = await this.fetchAlbumVideo(category);
-      if (!videoUrl) break;
-      try {
-        stream = await global.utils.getStreamFromURL(videoUrl);
-        if (stream) break;
-      } catch {}
-    }
-
-    if (!stream) return message.reply(`❌ No video found for ${displayName}.`);
-
-    try { await message.unsend(Reply.messageID); } catch {}
-
-    const categoryMessage = this.getCategoryMessage(category, displayName);
 
     try {
-      await message.reply({ body: categoryMessage, attachment: stream });
-    } catch (e) {
-      return message.reply(`❌ Error sending video: ${e.message}`);
+     await downloadFile(randomVideoUrl, filePath);
+     api.sendMessage(
+     { body: caption, attachment: fs.createReadStream(filePath) }, event.threadID, () => fs.unlinkSync(filePath), event.messageID);} catch (error) {
+     api.sendMessage("❌ | 𝐅𝐚𝐢𝐥𝐞𝐝 𝐭𝐨 𝐝𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐭𝐡𝐞 𝐯𝐢𝐝𝐞𝐨, 🥹error, contact MahMUD", event.threadID, event.messageID); }} catch (error) {
+     api.sendMessage("🥹error, contact MahMUD.", event.threadID, event.messageID);
     }
   }
 };

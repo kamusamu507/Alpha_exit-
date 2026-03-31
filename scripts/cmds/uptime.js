@@ -1,127 +1,115 @@
-const os = require("os");
-const fs = require("fs");
-const { execSync } = require("child_process");
+const os = require('os');
+const { bold } = require("fontstyles");
 
 module.exports = {
   config: {
-    name: "uptime",
-    version: "0.0.7",
-    author: "Azadx69x",
-    countDown: 5,
+    name: 'rtm',
+    aliases: ['stats', 'status', 'upx', 'ups', 'up', 'upt', 'uptime'],
+    version: '1.5',
+    usePrefix: false,
+    author: 'Mahi--',
+    countDown: 15,
     role: 0,
-    shortDescription: "Advanced full system report",
-    longDescription: "Everything: uptime, cpu, ram, disk, network, process, env",
-    category: "system",
-    guide: "{pn}"
+    shortDescription: 'Display bot uptime and system stats with media ban check',
+    longDescription: {
+      id: 'Display bot uptime and system stats with media ban check',
+      en: 'Display bot uptime and system stats with media ban check'
+    },
+    category: 'system',
+    guide: {
+      id: '{pn}: Display bot uptime and system stats with media ban check',
+      en: '{pn}: Display bot uptime and system stats with media ban check'
+    }
   },
-
-  onStart: async function ({ message }) {
-    const start = Date.now();
-
-    const format = (sec) => {
-      const d = Math.floor(sec / 86400);
-      const h = Math.floor((sec % 86400) / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = Math.floor(sec % 60);
-      return `${d}d ${h}h ${m}m ${s}s`;
-    };
-
-    const botUptime = format(process.uptime());
-    const sysUptime = format(os.uptime());
-
-    const cpus = os.cpus();
-    const cpuModel = cpus[0].model.trim();
-    const cpuCores = cpus.length;
-    const cpuSpeed = cpus[0].speed;
-
-    const load = os.loadavg().map(v => v.toFixed(2));
-
-    const toGB = (b) => (b / 1024 / 1024 / 1024).toFixed(2);
-    const toMB = (b) => (b / 1024 / 1024).toFixed(0);
-
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-    const usedMem = totalMem - freeMem;
-    const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
-
-    const mem = process.memoryUsage();
-    const heapPercent = ((mem.heapUsed / mem.heapTotal) * 100).toFixed(1);
-
-    const platform = os.platform();
-    const arch = os.arch();
-    const release = os.release();
-    const hostname = os.hostname();
-    const user = os.userInfo().username;
-
-    const nets = os.networkInterfaces();
-    let ip = "127.0.0.1";
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === "IPv4" && !net.internal) {
-          ip = net.address;
-          break;
-        }
-      }
-      if (ip !== "127.0.0.1") break;
+  onStart: async function ({ message, event, usersData, threadsData, api }) {
+    // Anti-Author Change Check
+    if (this.config.author !== 'Mahi--') {
+      return message.reply("⚠ Unauthorized author change detected. Command execution stopped.");
     }
 
-    let diskInfo = { total: "N/A", used: "N/A", free: "N/A", percent: "N/A" };
+    const startTime = Date.now();
+    const users = await usersData.getAll();
+    const groups = await threadsData.getAll();
+    const uptime = process.uptime();
+
     try {
-      const stdout = execSync("df -h / | tail -1", { encoding: "utf8" });
-      const parts = stdout.trim().split(/\s+/);
-      if (parts.length >= 6) {
-        diskInfo.total = parts[1];
-        diskInfo.used = parts[2];
-        diskInfo.free = parts[3];
-        diskInfo.percent = parts[4];
-      }
-    } catch (e) {
-      diskInfo.total = "Unavailable";
+      // Uptime calculation
+      const days = Math.floor(uptime / (3600 * 24));
+      const hours = Math.floor((uptime % (3600 * 24)) / 3600);
+      const minutes = Math.floor((uptime % 3600) / 60);
+      const seconds = Math.floor(uptime % 60);
+
+      // System Stats
+      const memoryUsage = process.memoryUsage();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const memoryUsagePercentage = (usedMemory / totalMemory * 100).toFixed(2);
+
+      const cpuUsage = os.loadavg();
+      const cpuCores = os.cpus().length;
+      const cpuModel = os.cpus()[0].model;
+      const nodeVersion = process.version;
+      const platform = os.platform();
+      const networkInterfaces = os.networkInterfaces();
+
+      const networkInfo = Object.keys(networkInterfaces).map(interface => {
+        return {
+          interface,
+          addresses: networkInterfaces[interface].map(info => `${info.family}: ${info.address}`)
+        };
+      });
+
+      const endTime = Date.now();
+      const botPing = endTime - startTime;
+
+      // Calculate total messages processed
+      const totalMessages = users.reduce((sum, user) => sum + (user.messageCount || 0), 0);
+
+      // Check media ban status
+      const mediaBan = await threadsData.get(event.threadID, 'mediaBan') || false;
+      const mediaBanStatus = mediaBan ? '🚫 Media is currently banned in this chat.' : '✅ Media is not banned in this chat.';
+
+      // Uptime-dependent response
+      const uptimeResponse = uptime > 86400 ? "I've been running for quite a while now! 💪" : "Just getting started! 😎";
+
+      // Break the message content into 5 segments for 5 edits
+      const editSegments = [
+        `🖥 ${bold("System Statistics")}:\n• Uptime: ${days}d ${hours}h ${minutes}m ${seconds}s\n• Memory Usage: ${(memoryUsage.rss / 1024 / 1024).toFixed(2)} MB`,
+        `• Total Memory: ${(totalMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n• Free Memory: ${(freeMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n• Memory Usage: ${memoryUsagePercentage}%\n• CPU Usage (1m): ${cpuUsage[0].toFixed(2)}%`,
+        `• CPU Usage (5m): ${cpuUsage[1].toFixed(2)}%\n• CPU Usage (15m): ${cpuUsage[2].toFixed(2)}%\n• CPU Cores: ${cpuCores}\n• CPU Model: ${cpuModel}`,
+        `• Node.js Version: ${nodeVersion}\n• Platform: ${platform}\n• Ping: ${botPing}ms\n• Total Users: ${users.length}\n• Total Groups: ${groups.length}`,
+        `• Messages Processed: ${totalMessages}\n${mediaBanStatus}\n\n🌐 ${bold("Network Interfaces")}:\n${networkInfo.map(info => `• ${info.interface}: ${info.addresses.join(', ')}`).join('\n')}\n\n${uptimeResponse}`
+      ];
+
+      // Loading animation frames
+      const loadingFrames = [
+        'LOADING.\n[█▒▒▒▒▒▒▒▒▒]',
+        'LOADING..\n[██▒▒▒▒▒▒▒▒]',
+        'LOADING...\n[████▒▒▒▒▒▒]',
+        'LOADING...\n[███████▒▒]',
+        'LOADED...\n[█████████]'
+      ];
+
+      // Send the initial message
+      let sentMessage = await message.reply("🖥 Initializing system stats...");
+
+      // Function to edit the message up to 5 times
+      const editMessageContent = (index) => {
+        if (index < editSegments.length) {
+          const loadingProgress = loadingFrames[index];
+          const currentContent = `${loadingProgress}\n\n${editSegments.slice(0, index + 1).join('\n\n')}`;
+          api.editMessage(currentContent, sentMessage.messageID);
+          setTimeout(() => editMessageContent(index + 1), 600); // Fast animation with 600ms delay
+        }
+      };
+
+      // Start editing the message
+      editMessageContent(0);
+
+    } catch (err) {
+      console.error(err);
+      return message.reply("❌ An error occurred while fetching system statistics.");
     }
-
-    const nodeVersion = process.version;
-    const pid = process.pid;
-    const cwd = process.cwd();
-
-    const latency = Date.now() - start;
-
-    const msg = `⏱️  𝐔𝐏𝐓𝐈𝐌𝐄
-├─ 𝐁𝐨𝐭: ${botUptime}
-├─ 𝐒𝐲𝐬𝐭𝐞𝐦: ${sysUptime}
-└─ 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐞: ${latency}𝐦𝐬
-
-🖥️  𝐒𝐘𝐒𝐓𝐄𝐌
-├─ 𝐎𝐒: ${platform} ${arch}
-├─ 𝐑𝐞𝐥𝐞𝐚𝐬𝐞: ${release}
-├─ 𝐇𝐨𝐬𝐭: ${hostname}
-├─ 𝐔𝐬𝐞𝐫: ${user}
-└─ 𝐈𝐏: ${ip}
-
-⚙️  𝐂𝐏𝐔
-├─ ${cpuModel}
-├─ 𝐂𝐨𝐫𝐞𝐬: ${cpuCores} @ ${cpuSpeed}𝐌𝐇𝐳
-└─ 𝐋𝐨𝐚𝐝: [${load[0]}] [${load[1]}] [${load[2]}]
-
-💾 𝐌𝐄𝐌𝐎𝐑𝐘
-├─ 𝐓𝐨𝐭𝐚𝐥: ${toGB(totalMem)} 𝐆𝐁
-├─ 𝐔𝐬𝐞𝐝:  ${toGB(usedMem)} 𝐆𝐁 (${memPercent}%)
-└─ 𝐅𝐫𝐞𝐞:  ${toGB(freeMem)} 𝐆𝐁
-
-🧠 𝐏𝐑𝐎𝐂𝐄𝐒𝐒
-├─ 𝐑𝐒𝐒: ${toMB(mem.rss)} 𝐌𝐁
-├─ 𝐇𝐞𝐚𝐩: ${toMB(mem.heapUsed)}/${toMB(mem.heapTotal)} 𝐌𝐁 (${heapPercent}%)
-└─ 𝐄𝐱𝐭𝐞𝐫𝐧𝐚𝐥: ${toMB(mem.external)} 𝐌𝐁
-
-💿 𝐒𝐓𝐎𝐑𝐀𝐆𝐄
-├─ 𝐓𝐨𝐭𝐚𝐥: ${diskInfo.total}
-├─ 𝐔𝐬𝐞𝐝:  ${diskInfo.used} (${diskInfo.percent})
-└─ 𝐅𝐫𝐞𝐞:  ${diskInfo.free}
-
-🔧 𝐑𝐔𝐍𝐓𝐈𝐌𝐄
-├─ 𝐍𝐨𝐝𝐞: ${nodeVersion}
-├─ 𝐏𝐈𝐃: ${pid}
-└─ 𝐏𝐚𝐭𝐡: ${cwd}`;
-
-    return message.reply(msg);
   }
 };

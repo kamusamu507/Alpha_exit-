@@ -26,7 +26,7 @@ module.exports = {
                 name: "unfriend",
                 version: "3.0",
                 author: "Azadx69x",
-                role: 4,
+                role: 2,
                 countDown: 5,
                 shortDescription: {
                         en: "Unfriend System"
